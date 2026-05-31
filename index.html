@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校舎・学年設定</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; }
+        .btn-primary { background-color: #417690; color: white; transition: 0.2s; }
+        .btn-primary:active { background-color: #2c5163; transform: scale(0.98); }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <h1 class="text-xl font-bold text-gray-800 mb-6 border-b pb-2">校舎・学年設定</h1>
+
+        <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-2">所属校舎</label>
+            <select id="campus_select" class="block w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                <option value="">選択してください</option>
+                {% for campus in campuses %}
+                <option value="{{ campus.campus_code }}">{{ campus.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-8">
+            <label class="block text-sm font-medium text-gray-700 mb-2">学年</label>
+            <div class="grid grid-cols-2 gap-2" id="grade_group">
+                <button type="button" onclick="selectGrade('中3')" class="grade-btn border p-3 rounded-md text-gray-600 hover:bg-gray-50">中3</button>
+                <button type="button" onclick="selectGrade('高1')" class="grade-btn border p-3 rounded-md text-gray-600 hover:bg-gray-50">高1</button>
+                <button type="button" onclick="selectGrade('高2')" class="grade-btn border p-3 rounded-md text-gray-600 hover:bg-gray-50">高2</button>
+                <button type="button" onclick="selectGrade('高3')" class="grade-btn border p-3 rounded-md text-gray-600 hover:bg-gray-50">高3</button>
+                <button type="button" onclick="selectGrade('卒')" class="grade-btn border p-3 rounded-md text-gray-600 hover:bg-gray-50 col-span-2">既卒・その他</button>
+            </div>
+        </div>
+
+        <button id="submit_btn" onclick="submitRegistration()" class="w-full btn-primary py-4 rounded-lg font-bold text-lg shadow-lg">
+            設定を反映する
+        </button>
+    </div>
+
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+        let selectedGrade = "";
+
+        // LIFF初期化
+        liff.init({ liffId: "2008539128-YNBAMh6F" }).then(() => {
+            if (!liff.isLoggedIn()) {
+                liff.login();
+            }
+        });
+
+        // 学年ボタン選択時のスタイル切り替え
+        function selectGrade(grade) {
+            selectedGrade = grade;
+            document.querySelectorAll('.grade-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'border-blue-500', 'text-blue-700', 'font-bold');
+            });
+            event.currentTarget.classList.add('bg-blue-100', 'border-blue-500', 'text-blue-700', 'font-bold');
+        }
+
+        // 送信処理
+        function submitRegistration() {
+            const campusSelect = document.getElementById('campus_select');
+            const campusCode = campusSelect.value;
+            const campusName = campusSelect.options[campusSelect.selectedIndex].text;
+
+            if (!campusCode || !selectedGrade) {
+                alert("校舎と学年を両方選択してください。");
+                return;
+            }
+
+            const btn = document.getElementById('submit_btn');
+            btn.disabled = true;
+            btn.innerText = "処理中...";
+
+            // 1. ユーザー自身のメッセージとしてトークルームにポスト
+            // これにより views.py の handle_main_logic が動き、メニューが切り替わる
+            liff.sendMessages([
+                {
+                    type: 'text',
+                    text: `【校舎登録】校舎コード:${campusCode} / 学年:${selectedGrade}`
+                }
+            ]).then(() => {
+                // 2. 送信成功したらLIFFを閉じる
+                liff.closeWindow();
+            }).catch((err) => {
+                console.error('Error sending message:', err);
+                alert("メッセージの送信に失敗しました。トークルームへのメッセージ送信権限を確認してください。");
+                btn.disabled = false;
+                btn.innerText = "設定を反映する";
+            });
+        }
+    </script>
+</body>
+</html>
