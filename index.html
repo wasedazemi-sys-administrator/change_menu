@@ -20,9 +20,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">所属校舎</label>
             <select id="campus_select" class="block w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                 <option value="">選択してください</option>
-                {% for campus in campuses %}
-                <option value="{{ campus.campus_code }}">{{ campus.name }}</option>
-                {% endfor %}
             </select>
         </div>
 
@@ -44,13 +41,47 @@
 
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
+        // 💡 GitHub配置用に校舎リストを固定データ（マスター）として定義
+        // 校舎の追加やコードの変更が必要になった場合は、この配列を編集してください。
+        const campusList = [
+            { code: "G01", name: "熊谷HS" },
+            { code: "T01", name: "高崎HS" },
+            { code: "M01", name: "前橋中央HS" },
+            { code: "I01", name: "伊勢崎HS" },
+            { code: "O01", name: "太田HS" },
+            { code: "K01", name: "桐生HS" },
+            { code: "A01", name: "足利HS" },
+            { code: "S01", name: "佐野HS" },
+            { code: "U01", name: "宇都宮中央HS" },
+            { code: "K02", name: "館林HS" },
+            { code: "T02", name: "栃木HS" },
+            { code: "O02", name: "小山HS" }
+        ];
+
         let selectedGrade = "";
+
+        // ページ読み込み時に校舎セレクトボックスを動的に生成
+        function initCampusSelect() {
+            const selectEl = document.getElementById('campus_select');
+            campusList.forEach(campus => {
+                const opt = document.createElement('option');
+                opt.value = campus.code;
+                opt.textContent = campus.name;
+                selectEl.appendChild(opt);
+            });
+        }
 
         // LIFF初期化
         liff.init({ liffId: "2008539128-YNBAMh6F" }).then(() => {
             if (!liff.isLoggedIn()) {
                 liff.login();
             }
+            // LIFF準備完了後にセレクトボックスを初期化
+            initCampusSelect();
+        }).catch((err) => {
+            console.error("LIFF Initialization failed ", err);
+            // 万が一LIFFが無くてもセレクトボックスだけは動かす
+            initCampusSelect();
         });
 
         // 学年ボタン選択時のスタイル切り替え
@@ -66,7 +97,6 @@
         function submitRegistration() {
             const campusSelect = document.getElementById('campus_select');
             const campusCode = campusSelect.value;
-            const campusName = campusSelect.options[campusSelect.selectedIndex].text;
 
             if (!campusCode || !selectedGrade) {
                 alert("校舎と学年を両方選択してください。");
@@ -77,15 +107,13 @@
             btn.disabled = true;
             btn.innerText = "処理中...";
 
-            // 1. ユーザー自身のメッセージとしてトークルームにポスト
-            // これにより views.py の handle_main_logic が動き、メニューが切り替わる
+            // ユーザー自身のメッセージとしてトークルームにポスト
             liff.sendMessages([
                 {
                     type: 'text',
                     text: `【校舎登録】校舎コード:${campusCode} / 学年:${selectedGrade}`
                 }
             ]).then(() => {
-                // 2. 送信成功したらLIFFを閉じる
                 liff.closeWindow();
             }).catch((err) => {
                 console.error('Error sending message:', err);
